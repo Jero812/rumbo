@@ -1,7 +1,7 @@
 // Única ruta del prototipo. Todo el contenido de la navegación sale de aquí:
 // para cambiar nombres, pasos, distancias o fotos, edita solo este archivo.
 
-export type Direction = 'straight' | 'left' | 'right' | 'slight-right' | 'arrive';
+export type Direction = 'straight' | 'left' | 'right' | 'slight-right' | 'slight-left' | 'arrive';
 
 /** Punto dentro de una foto, en fracciones de su ancho y alto (0–1). */
 export interface PhotoPoint {
@@ -80,9 +80,9 @@ export const ROUTE = {
       photo: { src: 'route/paso-4.jpg', target: { x: 0.554, y: 0.613 }, label: 'Hasta la máquina' },
     },
     {
-      direction: 'left',
-      title: 'Gira a la izquierda',
-      detail: 'Desde la máquina, toma el corredor de las lámparas hasta el final.',
+      direction: 'slight-left',
+      title: 'Avanza en diagonal a la izquierda',
+      detail: 'Desde la máquina, gira a medias a la izquierda y cruza el corredor de las lámparas.',
       distance: 21,
       landmark: 'Corredor de lámparas',
       photo: { src: 'route/paso-5.jpg', target: { x: 0.507, y: 0.496 }, label: 'Hasta la salida' },
@@ -139,7 +139,14 @@ export const photoUrl = (src: string) => `${import.meta.env.BASE_URL}${src}`;
 // Se calcula solo a partir de los giros y distancias, así nunca se
 // desincroniza de los pasos. Coordenadas en el viewBox 160 × 100.
 
-const TURN: Record<Direction, number> = { straight: 0, left: -90, right: 90, 'slight-right': 45, arrive: 0 };
+const TURN: Record<Direction, number> = {
+  straight: 0,
+  left: -90,
+  right: 90,
+  'slight-right': 45,
+  'slight-left': -45,
+  arrive: 0,
+};
 
 function buildPath() {
   let heading = 0;

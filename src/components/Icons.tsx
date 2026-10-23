@@ -48,6 +48,13 @@ export const SlightRight = (p: IconProps) => (
   </Svg>
 );
 
+export const SlightLeft = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M16 20v-6a3 3 0 0 0-.9-2.1L7 4" />
+    <path d="M13 4H7v6" />
+  </Svg>
+);
+
 export const Heart = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z" />
@@ -152,6 +159,8 @@ export function DirectionIcon({ direction, ...p }: IconProps & { direction: Dire
       return <TurnRight {...p} />;
     case 'slight-right':
       return <SlightRight {...p} />;
+    case 'slight-left':
+      return <SlightLeft {...p} />;
     case 'arrive':
       return <Pin {...p} />;
     default:

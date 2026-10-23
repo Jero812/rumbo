@@ -11,7 +11,12 @@ function Chevron({ i }: { i: number }) {
   );
 }
 
-const SIDE_LABEL = { left: 'Izquierda', right: 'Derecha', 'slight-right': 'Diagonal' } as const;
+const SIDE_LABEL = {
+  left: 'Izquierda',
+  right: 'Derecha',
+  'slight-right': 'Diagonal',
+  'slight-left': 'Diagonal',
+} as const;
 
 /**
  * Capa de "realidad aumentada": un camino de luz dibujado sobre el piso con
@@ -23,7 +28,7 @@ export function ArOverlay({ step }: { step: RouteStep }) {
   useParallax(worldRef);
   const dir = step.direction;
   const isTurn = dir === 'left' || dir === 'right';
-  const hasSign = isTurn || dir === 'slight-right';
+  const hasSign = isTurn || dir === 'slight-right' || dir === 'slight-left';
 
   return (
     <div className="ar" aria-hidden="true">

@@ -630,6 +630,18 @@ button:focus-visible {
   animation-name: plane-in-diag;
 }
 
+.ar-plane.dir-slight-left {
+  transform: rotateX(74deg) rotateZ(-24deg);
+  animation-name: plane-in-diag-left;
+}
+
+@keyframes plane-in-diag-left {
+  from {
+    opacity: 0;
+    transform: rotateX(74deg) rotateZ(-24deg) translateY(60px);
+  }
+}
+
 @keyframes plane-in {
   from {
     opacity: 0;
@@ -771,7 +783,8 @@ button:focus-visible {
   left: 72%;
 }
 
-.marker-left {
+.marker-left,
+.marker-slight-left {
   left: 28%;
 }
 
