@@ -14,7 +14,7 @@ Prototipo web para pruebas de usabilidad en la Universidad Icesi. Tiene tres pan
 | El movimiento de las flechas con la inclinación del teléfono (giroscopio, parallax) | El anclaje de las flechas al piso: se dibujan con perspectiva CSS, sin detectar superficies |
 | El flujo completo y las transiciones | El mapa, que es un esquema y no un plano a escala |
 
-No hay GPS, ARKit, WebXR, backend ni cuentas. Si la cámara no está disponible o el usuario no da permiso, la app cambia sola a la **vista simulada**: muestra una foto del punto o un entorno dibujado. El botón **Simulada** permite usarla a propósito, por ejemplo en una prueba dentro de un salón.
+No hay GPS, ARKit, WebXR, backend ni cuentas. Si la cámara no está disponible o el usuario no da permiso, la app cambia sola a la **vista con fotos**: la foto real de cada tramo con el camino dibujado hasta el punto donde termina. El botón **Fotos** permite usarla a propósito, por ejemplo en una prueba dentro de un salón. En cualquier modo, la miniatura de la tarjeta abre la foto de referencia del tramo.
 
 ## Editar la ruta
 
@@ -22,7 +22,7 @@ Todo el contenido está en `src/data/route.ts`: los nombres del inicio y del des
 
 Para usar fotos reales en la vista simulada:
 1. Copia las fotos verticales en `public/route/`.
-2. Agrega `photo: 'route/paso-1.jpg'` al paso correspondiente.
+2. En el paso, ajusta `photo.src` y `photo.target` (dónde termina el tramo dentro de la foto, de 0 a 1).
 
 ## Comandos (desde la carpeta `rumbo`)
 

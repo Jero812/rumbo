@@ -41,6 +41,27 @@ export const TurnLeft = (p: IconProps) => (
   </Svg>
 );
 
+export const SlightRight = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M8 20v-6a3 3 0 0 1 .9-2.1L17 4" />
+    <path d="M11 4h6v6" />
+  </Svg>
+);
+
+export const Heart = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z" />
+  </Svg>
+);
+
+export const ImageIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+    <circle cx="9" cy="10" r="1.8" />
+    <path d="M20.5 16l-5-5-8.5 8.5" />
+  </Svg>
+);
+
 export const Pin = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" />
@@ -129,6 +150,8 @@ export function DirectionIcon({ direction, ...p }: IconProps & { direction: Dire
       return <TurnLeft {...p} />;
     case 'right':
       return <TurnRight {...p} />;
+    case 'slight-right':
+      return <SlightRight {...p} />;
     case 'arrive':
       return <Pin {...p} />;
     default:
@@ -136,17 +159,6 @@ export function DirectionIcon({ direction, ...p }: IconProps & { direction: Dire
   }
 }
 
-export function Logo({ size = 36 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 40 40" width={size} height={size} aria-hidden="true">
-      <defs>
-        <linearGradient id="rumbo-logo" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#38e8ff" />
-          <stop offset="1" stopColor="#7b61ff" />
-        </linearGradient>
-      </defs>
-      <rect x="1" y="1" width="38" height="38" rx="12" fill="#0d1527" stroke="url(#rumbo-logo)" strokeWidth="1.5" />
-      <path d="M20 8l9 22-9-5-9 5z" fill="url(#rumbo-logo)" />
-    </svg>
-  );
+export function Logo({ size = 40 }: { size?: number }) {
+  return <img src={`${import.meta.env.BASE_URL}logo.png`} width={size} height={size} alt="" className="logo" />;
 }

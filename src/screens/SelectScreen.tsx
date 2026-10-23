@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CampusMap } from '../components/CampusMap';
-import { Book, Check, Clock, Locate, Logo, Steps, Walk } from '../components/Icons';
+import { Check, Clock, Heart, Locate, Logo, Steps, Walk } from '../components/Icons';
 import { ROUTE, TOTAL_DISTANCE, TOTAL_MINUTES } from '../data/route';
 
 export function SelectScreen({ onStart }: { onStart: () => void }) {
@@ -49,7 +49,7 @@ export function SelectScreen({ onStart }: { onStart: () => void }) {
           onClick={() => setSelected(true)}
         >
           <span className="dest-icon">
-            <Book width={22} height={22} />
+            <Heart width={22} height={22} />
           </span>
           <span className="dest-text">
             <strong>{destination.name}</strong>
@@ -82,7 +82,7 @@ export function SelectScreen({ onStart }: { onStart: () => void }) {
           Iniciar recorrido
         </button>
         <p className="cta-hint">
-          {selected ? 'Te pediremos acceso a la cámara para mostrarte el camino.' : 'Toca un destino para ver la ruta.'}
+          {selected ? 'Te pediremos acceso a la cámara para guiarte en vivo.' : 'Toca un destino para ver la ruta.'}
         </p>
       </footer>
     </main>
