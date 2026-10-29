@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { CampusMap } from '../components/CampusMap';
 import { Check, Clock, Heart, Locate, Logo, Steps, Walk } from '../components/Icons';
 import { ROUTE, TOTAL_DISTANCE, TOTAL_MINUTES } from '../data/route';
 
@@ -12,20 +11,14 @@ export function SelectScreen({ onStart }: { onStart: () => void }) {
       <header className="brand">
         <Logo />
         <div>
-          <span className="brand-name">Rumbo</span>
+          <span className="brand-name">
+            Rumbo <small className="brand-tag">prototipo inicial</small>
+          </span>
           <span className="brand-sub">
             {ROUTE.campus} · {ROUTE.city}
           </span>
         </div>
       </header>
-
-      <section className="map-card">
-        <CampusMap activeStep={selected ? 0 : null} />
-        <div className="map-chip">
-          <span className="live-dot" />
-          Estás aquí
-        </div>
-      </section>
 
       <section className="panel">
         <div className="origin-row">
@@ -39,7 +32,7 @@ export function SelectScreen({ onStart }: { onStart: () => void }) {
           </div>
         </div>
 
-        <h1 className="section-title">¿A dónde quieres ir?</h1>
+        <h1 className="section-title">Tu destino será:</h1>
 
         <button
           type="button"
@@ -82,7 +75,9 @@ export function SelectScreen({ onStart }: { onStart: () => void }) {
           Iniciar recorrido
         </button>
         <p className="cta-hint">
-          {selected ? 'Te pediremos acceso a la cámara para guiarte en vivo.' : 'Toca un destino para ver la ruta.'}
+          {selected
+            ? 'Te pediremos acceso a la cámara, la ubicación y la orientación del teléfono para guiarte en vivo.'
+            : 'Toca el destino para ver la ruta.'}
         </p>
       </footer>
     </main>

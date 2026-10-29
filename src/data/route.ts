@@ -128,6 +128,32 @@ export const ROUTE = {
   ] satisfies RouteStep[] as RouteStep[],
 };
 
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+// Coordenadas GPS de cada punto de la ruta, en el orden del recorrido
+// (fuente: PDF "coordenadas" del equipo). El punto i es donde termina el
+// paso i: el primero es la entrada principal y el último, Bienestar
+// Universitario. El punto de partida no tiene coordenadas a propósito.
+export const CHECKPOINTS: LatLng[] = [
+  { lat: 3.3418422, lng: -76.5305549 }, // 1. Entrada principal (arco)
+  { lat: 3.3417663, lng: -76.5305706 }, // 2. Esquina donde se gira a la izquierda
+  { lat: 3.3416625, lng: -76.5303047 }, // 3.
+  { lat: 3.341695, lng: -76.5302293 }, // 4.
+  { lat: 3.3416464, lng: -76.53012 }, // 5.
+  { lat: 3.3413285, lng: -76.5300365 }, // 6.
+  { lat: 3.3413395, lng: -76.5297891 }, // 7.
+  { lat: 3.3407879, lng: -76.5298548 }, // 8. Bienestar Universitario
+];
+
+/** Punto GPS que cierra el paso dado; el paso de llegada no tiene. */
+export const targetForStep = (stepIndex: number): LatLng | null => CHECKPOINTS[stepIndex] ?? null;
+
+/** Punto GPS donde empieza el paso dado (el inicio de la ruta no tiene). */
+export const originForStep = (stepIndex: number): LatLng | null => CHECKPOINTS[stepIndex - 1] ?? null;
+
 export const TOTAL_DISTANCE = ROUTE.steps.reduce((sum, s) => sum + s.distance, 0);
 
 // Caminando a ~70 m por minuto.

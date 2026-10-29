@@ -1,12 +1,37 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArOverlay } from '../components/ArOverlay';
 import { CampusMap } from '../components/CampusMap';
-import { Camera, ChevronLeft, ChevronRight, Close, DirectionIcon, ImageIcon, MapIcon } from '../components/Icons';
+import { GeoArOverlay } from '../components/GeoArOverlay';
+import { Camera, Check, ChevronLeft, ChevronRight, Close, DirectionIcon, ImageIcon, MapIcon } from '../components/Icons';
 import { PhotoScene } from '../components/PhotoScene';
-import { photoUrl, ROUTE } from '../data/route';
+import { CHECKPOINTS, originForStep, photoUrl, ROUTE, targetForStep } from '../data/route';
 import { useCamera } from '../hooks/useCamera';
+import { useCompass } from '../hooks/useCompass';
+import { useGeolocation } from '../hooks/useGeolocation';
+import { bearingDegrees, distanceMeters, normalizeAngle } from '../lib/geo';
 
 type ViewMode = 'camera' | 'sim';
+
+// Tolerancias del avance automático por GPS.
+/** Con un error mayor que este (m), la posición no cuenta para avanzar. */
+const MAX_ACCURACY = 25;
+/** Lecturas seguidas dentro del radio antes de dar el punto por alcanzado. */
+const HITS_TO_ARRIVE = 2;
+/** Tiempo mínimo en un paso antes de poder avanzar solo (ms). */
+const MIN_STEP_TIME = 3000;
+
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+/**
+ * Radio para dar por alcanzado un punto: crece con el error del GPS, pero
+ * nunca pasa del 60 % del tramo, para que en tramos cortos no salte de
+ * indicación antes de tiempo.
+ */
+function arrivalRadius(accuracy: number, segment: number) {
+  return Math.min(clamp(4 + accuracy * 0.5, 6, 12), Math.max(5, segment * 0.6));
+}
+
+const LAST_POINT = CHECKPOINTS[CHECKPOINTS.length - 1];
 
 interface Props {
   onArrive: () => void;
@@ -20,26 +45,90 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
   const [showCoach, setShowCoach] = useState(true);
   const [confirmExit, setConfirmExit] = useState(false);
   const [viewer, setViewer] = useState<'step' | 'checkpoint' | null>(null);
+  const [reachedToast, setReachedToast] = useState(false);
   const camera = useCamera(mode === 'camera');
+  const geo = useGeolocation();
+  const heading = useCompass();
+  const hitsRef = useRef(0);
+  const stepStartRef = useRef(Date.now());
 
   const steps = ROUTE.steps;
   const step = steps[stepIndex];
   const isLast = stepIndex === steps.length - 1;
   const cameraLive = mode === 'camera' && camera.status === 'live';
   const cameraFailed = mode === 'camera' && (camera.status === 'denied' || camera.status === 'unavailable');
-  const remaining = steps.slice(stepIndex).reduce((sum, s) => sum + s.distance, 0);
+
+  // ---- Posición real respecto a la ruta ----
+  const target = targetForStep(stepIndex);
+  const aim = target ?? LAST_POINT; // en la llegada, se sigue señalando BU
+  const fix = geo.fix;
+  const fixUsable = fix !== null && fix.accuracy <= MAX_ACCURACY;
+  const distToAim = fix ? distanceMeters(fix, aim) : null;
+  let bearing: number | null = fix ? bearingDegrees(fix, aim) : null;
+  // Muy cerca del punto el rumbo GPS se vuelve inestable: se apunta al siguiente tramo.
+  const nextTarget = targetForStep(stepIndex + 1);
+  if (distToAim !== null && distToAim < 4 && target && nextTarget) bearing = bearingDegrees(target, nextTarget);
+  const relBearing = bearing !== null && heading !== null ? normalizeAngle(bearing - heading) : null;
+
+  const remainingStatic = steps.slice(stepIndex).reduce((sum, s) => sum + s.distance, 0);
+  const remainingGps =
+    fix && target
+      ? distanceMeters(fix, target) +
+        CHECKPOINTS.slice(stepIndex + 1).reduce((sum, p, i) => sum + distanceMeters(CHECKPOINTS[stepIndex + i], p), 0)
+      : null;
+  const remaining = Math.round(remainingGps ?? remainingStatic);
 
   const goTo = (i: number) => {
     setViewer(null);
     setStepIndex(i);
+    hitsRef.current = 0;
+    stepStartRef.current = Date.now();
   };
   const next = () => (isLast ? onArrive() : goTo(stepIndex + 1));
   const prev = () => goTo(Math.max(0, stepIndex - 1));
 
+  // ---- Avance automático al llegar a cada punto ----
+  useEffect(() => {
+    if (!fix || !target) return;
+    if (fix.accuracy > MAX_ACCURACY) {
+      hitsRef.current = 0;
+      return;
+    }
+    const from = originForStep(stepIndex);
+    const segment = from ? distanceMeters(from, target) : Infinity;
+    const inside = distanceMeters(fix, target) <= arrivalRadius(fix.accuracy, segment);
+    hitsRef.current = inside ? hitsRef.current + 1 : 0;
+    if (hitsRef.current >= HITS_TO_ARRIVE && Date.now() - stepStartRef.current > MIN_STEP_TIME) {
+      hitsRef.current = 0;
+      stepStartRef.current = Date.now();
+      setViewer(null);
+      setStepIndex((i) => Math.min(i + 1, steps.length - 1));
+      setReachedToast(true);
+      navigator.vibrate?.(120);
+    }
+  }, [fix, target, stepIndex, steps.length]);
+
+  useEffect(() => {
+    if (!reachedToast) return;
+    const t = setTimeout(() => setReachedToast(false), 2200);
+    return () => clearTimeout(t);
+  }, [reachedToast]);
+
   const meta =
-    step.distance === 0
-      ? `Frente a ti · ${step.landmark}`
-      : `${step.distance} m · ${step.landmark}`;
+    distToAim !== null && fixUsable
+      ? `${Math.round(distToAim)} m · ${step.landmark}`
+      : step.distance === 0
+        ? `Frente a ti · ${step.landmark}`
+        : `${step.distance} m · ${step.landmark}`;
+
+  const gpsText =
+    geo.status === 'denied'
+      ? 'Sin permiso de ubicación'
+      : geo.status === 'unavailable'
+        ? 'GPS no disponible'
+        : !fix
+          ? 'Buscando GPS…'
+          : `GPS ±${Math.round(fix.accuracy)} m${fixUsable ? '' : ' · señal débil'}`;
 
   return (
     <main className="screen nav">
@@ -51,7 +140,18 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
         <div className="nav-shade" />
       </div>
 
-      {cameraLive && <ArOverlay key={stepIndex} step={step} />}
+      {cameraLive &&
+        (relBearing !== null && distToAim !== null ? (
+          <GeoArOverlay relBearing={relBearing} distance={distToAim} label={step.landmark} isArrive={!target} />
+        ) : (
+          <ArOverlay key={stepIndex} step={step} />
+        ))}
+
+      {reachedToast && (
+        <div className="toast" role="status">
+          <Check width={18} height={18} strokeWidth={3} /> Punto alcanzado
+        </div>
+      )}
 
       <header className="nav-top">
         <button type="button" className="icon-btn" aria-label="Salir de la navegación" onClick={() => setConfirmExit(true)}>
@@ -111,6 +211,16 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
             </button>
           </div>
         )}
+        {(geo.status === 'denied' || geo.status === 'unavailable') && (
+          <div className="notice is-warn">
+            {geo.status === 'denied'
+              ? 'Sin permiso de ubicación: la indicación no avanzará sola. Usa el botón al llegar a cada punto.'
+              : 'Este navegador no da ubicación: usa el botón al llegar a cada punto.'}
+          </div>
+        )}
+        {cameraLive && fix && heading === null && (
+          <div className="notice">Brújula no disponible: las flechas no se orientan solas.</div>
+        )}
         <div className="nav-meta">
           <button type="button" className="icon-btn" aria-label="Paso anterior" onClick={prev} disabled={stepIndex === 0}>
             <ChevronLeft width={20} height={20} />
@@ -120,8 +230,9 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
               Paso {stepIndex + 1} de {steps.length}
             </strong>
             <span>
-              {remaining > 0 ? `Faltan ${remaining} m para ${ROUTE.destination.short}` : `Estás en ${ROUTE.destination.short}`}
+              {remaining > 0 && target ? `Faltan ${remaining} m para ${ROUTE.destination.short}` : `Estás en ${ROUTE.destination.short}`}
             </span>
+            <span className={`gps-chip${fixUsable ? ' is-ok' : ''}`}>{gpsText}</span>
           </div>
           <button
             type="button"
@@ -181,12 +292,15 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
               </li>
               <li>
                 <span>2</span>
-                <p>Sigue las flechas que aparecen sobre el piso. Toca la foto de la tarjeta para ver hasta dónde caminar.</p>
+                <p>
+                  Gira hasta que el camino de luz quede recto frente a ti y síguelo. Toca la foto de la tarjeta para ver hasta
+                  dónde caminar.
+                </p>
               </li>
               <li>
                 <span>3</span>
                 <p>
-                  Cuando llegues al punto, toca <b>Siguiente indicación</b>.
+                  Al llegar a cada punto, la indicación cambia sola. Si no cambia, toca <b>Siguiente indicación</b>.
                 </p>
               </li>
             </ol>
