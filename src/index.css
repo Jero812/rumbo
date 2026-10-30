@@ -733,28 +733,69 @@ button:focus-visible {
   }
 }
 
-.toast {
-  position: absolute;
-  z-index: 6;
-  left: 50%;
-  top: 46%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 18px;
-  border-radius: 999px;
-  font-weight: 800;
-  color: #fff;
-  background: var(--primary);
-  box-shadow: var(--shadow);
-  animation: toast-in 0.3s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+.suggest {
+  margin-bottom: 10px;
+  padding: 12px;
+  border-radius: 20px;
+  background: var(--lilac-soft);
+  border: 2px solid var(--route-soft);
+  animation: suggest-in 0.35s cubic-bezier(0.3, 1.4, 0.5, 1) both;
 }
 
-@keyframes toast-in {
+.suggest-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.suggest-head strong,
+.suggest-head span {
+  display: block;
+}
+
+.suggest-head strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.suggest-head span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.suggest-icon {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--route);
+}
+
+.suggest-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 8px;
+}
+
+.suggest-actions .btn-primary,
+.suggest-actions .btn-ghost {
+  min-height: 46px;
+  font-size: 15px;
+}
+
+.suggest-actions .btn-ghost {
+  background: var(--surface);
+}
+
+@keyframes suggest-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
+    transform: translateY(12px) scale(0.96);
   }
 }
 

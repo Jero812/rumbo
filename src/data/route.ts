@@ -133,19 +133,25 @@ export interface LatLng {
   lng: number;
 }
 
-// Coordenadas GPS de cada punto de la ruta, en el orden del recorrido
-// (fuente: PDF "coordenadas" del equipo). El punto i es donde termina el
-// paso i: el primero es la entrada principal y el último, Bienestar
-// Universitario. El punto de partida no tiene coordenadas a propósito.
+// Coordenadas GPS de cada punto de la ruta, en el orden del recorrido. El
+// punto i es donde termina el paso i: el primero es la entrada principal y el
+// último, Bienestar Universitario. El punto de partida no tiene coordenadas a
+// propósito.
+//
+// Parten del PDF "coordenadas" del equipo, enderezadas tras probarlas en el
+// campus: la entrada 3 m más a la izquierda, giros de 90° exactos y las dos
+// diagonales del hall a 45° (primero a la derecha, luego a la izquierda).
+// Rumbos resultantes: 94° de frente, 184° en los giros a la derecha y 139° en
+// la diagonal. Ningún punto se movió más de 6 m del original.
 export const CHECKPOINTS: LatLng[] = [
-  { lat: 3.3418422, lng: -76.5305549 }, // 1. Entrada principal (arco)
-  { lat: 3.3417663, lng: -76.5305706 }, // 2. Esquina donde se gira a la izquierda
-  { lat: 3.3416625, lng: -76.5303047 }, // 3.
-  { lat: 3.341695, lng: -76.5302293 }, // 4.
-  { lat: 3.3416464, lng: -76.53012 }, // 5.
-  { lat: 3.3413285, lng: -76.5300365 }, // 6.
-  { lat: 3.3413395, lng: -76.5297891 }, // 7.
-  { lat: 3.3407879, lng: -76.5298548 }, // 8. Bienestar Universitario
+  { lat: 3.3418691, lng: -76.530553 }, // 1. Entrada principal (arco)       PDF: 3.3418422, -76.5305549
+  { lat: 3.3417311, lng: -76.5305627 }, // 2. Puerta de vidrio (giro izq.)   PDF: 3.3417663, -76.5305706
+  { lat: 3.3417118, lng: -76.5302862 }, // 3. Final del corredor             PDF: 3.3416625, -76.5303047
+  { lat: 3.3416684, lng: -76.5302484 }, // 4. Máquina del hall               PDF: 3.3416950, -76.5302293
+  { lat: 3.3416557, lng: -76.5300662 }, // 5. Final corredor de lámparas     PDF: 3.3416464, -76.5301200
+  { lat: 3.3413456, lng: -76.5300879 }, // 6. Final corredor Edificio B      PDF: 3.3413285, -76.5300365
+  { lat: 3.3413257, lng: -76.5298034 }, // 7. Letrero de direcciones         PDF: 3.3413395, -76.5297891
+  { lat: 3.3407872, lng: -76.5298411 }, // 8. Bienestar Universitario        PDF: 3.3407879, -76.5298548
 ];
 
 /** Punto GPS que cierra el paso dado; el paso de llegada no tiene. */

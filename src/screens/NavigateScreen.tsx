@@ -12,12 +12,13 @@ import { bearingDegrees, distanceMeters, normalizeAngle } from '../lib/geo';
 
 type ViewMode = 'camera' | 'sim';
 
-// Tolerancias del avance automático por GPS.
-/** Con un error mayor que este (m), la posición no cuenta para avanzar. */
+// Tolerancias para detectar por GPS que se terminó un paso. La app no cambia
+// de paso sola: muestra un aviso y la persona decide si pasa al siguiente.
+/** Con un error mayor que este (m), la posición no cuenta. */
 const MAX_ACCURACY = 25;
 /** Lecturas seguidas dentro del radio antes de dar el punto por alcanzado. */
 const HITS_TO_ARRIVE = 2;
-/** Tiempo mínimo en un paso antes de poder avanzar solo (ms). */
+/** Tiempo mínimo en un paso antes de sugerir el siguiente (ms). */
 const MIN_STEP_TIME = 3000;
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -45,12 +46,15 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
   const [showCoach, setShowCoach] = useState(true);
   const [confirmExit, setConfirmExit] = useState(false);
   const [viewer, setViewer] = useState<'step' | 'checkpoint' | null>(null);
-  const [reachedToast, setReachedToast] = useState(false);
+  /** Paso para el que se muestra "Parece que terminaste este paso". */
+  const [suggestFor, setSuggestFor] = useState<number | null>(null);
   const camera = useCamera(mode === 'camera');
   const geo = useGeolocation();
   const heading = useCompass();
   const hitsRef = useRef(0);
   const stepStartRef = useRef(Date.now());
+  /** "Aún no": no volver a sugerir hasta que la persona salga del radio del punto. */
+  const dismissedRef = useRef(false);
 
   const steps = ROUTE.steps;
   const step = steps[stepIndex];
@@ -83,11 +87,17 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
     setStepIndex(i);
     hitsRef.current = 0;
     stepStartRef.current = Date.now();
+    dismissedRef.current = false;
+    setSuggestFor(null);
   };
   const next = () => (isLast ? onArrive() : goTo(stepIndex + 1));
   const prev = () => goTo(Math.max(0, stepIndex - 1));
+  const notYet = () => {
+    dismissedRef.current = true;
+    setSuggestFor(null);
+  };
 
-  // ---- Avance automático al llegar a cada punto ----
+  // ---- Detección de llegada a cada punto: solo sugiere pasar al siguiente ----
   useEffect(() => {
     if (!fix || !target) return;
     if (fix.accuracy > MAX_ACCURACY) {
@@ -97,22 +107,24 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
     const from = originForStep(stepIndex);
     const segment = from ? distanceMeters(from, target) : Infinity;
     const inside = distanceMeters(fix, target) <= arrivalRadius(fix.accuracy, segment);
-    hitsRef.current = inside ? hitsRef.current + 1 : 0;
-    if (hitsRef.current >= HITS_TO_ARRIVE && Date.now() - stepStartRef.current > MIN_STEP_TIME) {
+    if (!inside) {
       hitsRef.current = 0;
-      stepStartRef.current = Date.now();
-      setViewer(null);
-      setStepIndex((i) => Math.min(i + 1, steps.length - 1));
-      setReachedToast(true);
+      dismissedRef.current = false;
+      return;
+    }
+    hitsRef.current += 1;
+    if (
+      hitsRef.current >= HITS_TO_ARRIVE &&
+      Date.now() - stepStartRef.current > MIN_STEP_TIME &&
+      !dismissedRef.current &&
+      suggestFor !== stepIndex
+    ) {
+      setSuggestFor(stepIndex);
       navigator.vibrate?.(120);
     }
-  }, [fix, target, stepIndex, steps.length]);
+  }, [fix, target, stepIndex, suggestFor]);
 
-  useEffect(() => {
-    if (!reachedToast) return;
-    const t = setTimeout(() => setReachedToast(false), 2200);
-    return () => clearTimeout(t);
-  }, [reachedToast]);
+  const showSuggest = suggestFor === stepIndex;
 
   const meta =
     distToAim !== null && fixUsable
@@ -147,11 +159,6 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
           <ArOverlay key={stepIndex} step={step} />
         ))}
 
-      {reachedToast && (
-        <div className="toast" role="status">
-          <Check width={18} height={18} strokeWidth={3} /> Punto alcanzado
-        </div>
-      )}
 
       <header className="nav-top">
         <button type="button" className="icon-btn" aria-label="Salir de la navegación" onClick={() => setConfirmExit(true)}>
@@ -195,6 +202,27 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
       </section>
 
       <footer className="nav-bottom">
+        {showSuggest && (
+          <div className="suggest" role="status">
+            <div className="suggest-head">
+              <span className="suggest-icon">
+                <Check width={18} height={18} strokeWidth={3} />
+              </span>
+              <div>
+                <strong>{target === LAST_POINT ? `Parece que llegaste a ${ROUTE.destination.short}` : 'Parece que terminaste este paso'}</strong>
+                <span>¿Pasamos a la siguiente indicación?</span>
+              </div>
+            </div>
+            <div className="suggest-actions">
+              <button type="button" className="btn-ghost" onClick={notYet}>
+                Aún no
+              </button>
+              <button type="button" className="btn-primary" onClick={next}>
+                Pasar al siguiente
+              </button>
+            </div>
+          </div>
+        )}
         {showMap && (
           <div className="mini-map">
             <CampusMap activeStep={stepIndex} />
@@ -300,7 +328,8 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
               <li>
                 <span>3</span>
                 <p>
-                  Al llegar a cada punto, la indicación cambia sola. Si no cambia, toca <b>Siguiente indicación</b>.
+                  Al llegar a cada punto te avisaremos con <b>Parece que terminaste este paso</b>. También puedes tocar{' '}
+                  <b>Siguiente indicación</b> cuando quieras.
                 </p>
               </li>
             </ol>

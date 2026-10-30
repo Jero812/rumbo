@@ -11,16 +11,16 @@ Prototipo web para pruebas de usabilidad en la Universidad Icesi. Tiene tres pan
 | Real | Aproximado o simulado |
 |---|---|
 | El video en vivo de la cámara trasera (con HTTPS) | El piso: el camino de luz se dibuja con perspectiva CSS, sin detectar superficies (no hay ARKit ni WebXR en Safari) |
-| La posición GPS del teléfono y el avance automático al llegar a cada punto (`CHECKPOINTS` en `src/data/route.ts`) | La precisión: depende del GPS del teléfono (normalmente ±5–15 m, peor bajo techo) |
+| La posición GPS del teléfono y el aviso al llegar a cada punto (`CHECKPOINTS` en `src/data/route.ts`) | La precisión: depende del GPS del teléfono (normalmente ±5–15 m, peor bajo techo) |
 | La dirección de las flechas: rumbo GPS al siguiente punto menos la brújula del teléfono | El mapa, que es un esquema y no un plano a escala |
 | El flujo completo y las transiciones | |
 
 ### Cómo avanza la navegación
 
-- El teléfono sigue la ubicación con `watchPosition` y la compara con el punto donde termina el paso actual.
-- Un punto se da por alcanzado con **2 lecturas seguidas** dentro de un radio de **6–12 m**, según la precisión del GPS, y nunca más del 60 % del tramo. Además deben pasar **3 s** en el paso, y la precisión debe ser de **±25 m o mejor**.
+- El teléfono sigue la ubicación con `watchPosition` y la compara con el punto donde termina el paso actual. Las coordenadas son las del PDF del equipo, enderezadas a giros de 90° y diagonales de 45° (ver comentario en `src/data/route.ts`).
+- Un punto se da por alcanzado (y aparece el aviso «Parece que terminaste este paso», que la persona confirma con «Pasar al siguiente»; la app nunca cambia de paso sola) con **2 lecturas seguidas** dentro de un radio de **6–12 m**, según la precisión del GPS, y nunca más del 60 % del tramo. Además deben pasar **3 s** en el paso, y la precisión debe ser de **±25 m o mejor**.
 - El punto de partida no se valida: los facilitadores ubican a cada participante.
-- El botón **Siguiente indicación** queda como respaldo si el GPS se atrasa.
+- El botón **Siguiente indicación** sigue disponible en todo momento.
 - Si falta el permiso de ubicación o de brújula, la app lo avisa y sigue funcionando con el botón.
 
 No hay backend ni cuentas. Si la cámara no está disponible o el usuario no da permiso, la app cambia sola a la **vista con fotos**: la foto real de cada tramo con el camino dibujado hasta el punto donde termina. El botón **Fotos** permite usarla a propósito, por ejemplo en una prueba dentro de un salón. En cualquier modo, la miniatura de la tarjeta abre la foto de referencia del tramo.
