@@ -21,7 +21,16 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
  * hasta el punto donde termina el tramo. Es la vista "simulada" y también el
  * visor de referencia.
  */
-export function PhotoScene({ photo, showPath = true }: { photo: RoutePhoto; showPath?: boolean }) {
+export function PhotoScene({
+  photo,
+  showPath = true,
+  showMarker = true,
+}: {
+  photo: RoutePhoto;
+  showPath?: boolean;
+  /** false deja solo la foto, sin camino ni marcador. */
+  showMarker?: boolean;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<Box>({ w: 0, h: 0 });
   const [natural, setNatural] = useState<Box | null>(null);
@@ -71,7 +80,7 @@ export function PhotoScene({ photo, showPath = true }: { photo: RoutePhoto; show
         draggable={false}
         onLoad={(e) => setNatural({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
       />
-      {target && (
+      {target && showMarker && (
         <>
           <svg className="photo-ar" width={box.w} height={box.h} aria-hidden="true">
             <defs>

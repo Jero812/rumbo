@@ -34,6 +34,15 @@ function arrivalRadius(accuracy: number, segment: number) {
 
 const LAST_POINT = CHECKPOINTS[CHECKPOINTS.length - 1];
 
+// Fases de un paso con giro: primero "Gira a la derecha"; en cuanto la persona
+// ya giró y avanza hacia el siguiente punto, la tarjeta pasa a "Sigue derecho".
+/** Tiempo mirando hacia el siguiente punto para dar el giro por hecho (ms). */
+const ALIGNED_TIME = 1500;
+/** Metros alejándose del punto de giro, acercándose al siguiente, para darlo por hecho. */
+const GPS_PROGRESS = 5;
+
+const TURN_DIRECTIONS = new Set(['left', 'right', 'slight-left', 'slight-right']);
+
 interface Props {
   onArrive: () => void;
   onExit: () => void;
@@ -48,6 +57,8 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
   const [viewer, setViewer] = useState<'step' | 'checkpoint' | null>(null);
   /** Paso para el que se muestra "Parece que terminaste este paso". */
   const [suggestFor, setSuggestFor] = useState<number | null>(null);
+  /** Paso en el que la persona ya hizo el giro (fase "Sigue derecho"). */
+  const [turnedFor, setTurnedFor] = useState<number | null>(null);
   const camera = useCamera(mode === 'camera');
   const geo = useGeolocation();
   const heading = useCompass();
@@ -120,11 +131,38 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
       suggestFor !== stepIndex
     ) {
       setSuggestFor(stepIndex);
+      setViewer(null);
       navigator.vibrate?.(120);
     }
   }, [fix, target, stepIndex, suggestFor]);
 
   const showSuggest = suggestFor === stepIndex;
+
+  // ---- ¿Ya hizo el giro? Brújula (mira hacia el punto) o GPS (avanza hacia él) ----
+  const needsTurn = TURN_DIRECTIONS.has(step.direction);
+  const turned = needsTurn && turnedFor === stepIndex;
+  const alignTolerance = step.direction.startsWith('slight') ? 28 : 35;
+  const facingTarget = relBearing !== null && Math.abs(relBearing) < alignTolerance;
+  const stepOrigin = originForStep(stepIndex);
+  const gpsProgressed =
+    fixUsable &&
+    stepOrigin !== null &&
+    target !== null &&
+    distanceMeters(fix, stepOrigin) >= GPS_PROGRESS &&
+    distanceMeters(fix, target) < distanceMeters(stepOrigin, target) - 2;
+
+  useEffect(() => {
+    if (!needsTurn || turned || !facingTarget) return;
+    const t = setTimeout(() => setTurnedFor(stepIndex), ALIGNED_TIME);
+    return () => clearTimeout(t);
+  }, [needsTurn, turned, facingTarget, stepIndex]);
+
+  useEffect(() => {
+    if (needsTurn && !turned && gpsProgressed) setTurnedFor(stepIndex);
+  }, [needsTurn, turned, gpsProgressed, stepIndex]);
+
+  const shownDirection = turned ? 'straight' : step.direction;
+  const shownTitle = turned ? 'Sigue derecho' : step.title;
 
   const meta =
     distToAim !== null && fixUsable
@@ -148,18 +186,21 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
         {mode === 'camera' && (
           <video ref={camera.videoRef} className={`cam${cameraLive ? ' is-live' : ''}`} playsInline muted autoPlay />
         )}
-        {!cameraLive && <PhotoScene key={`bg-${stepIndex}`} photo={step.photo} />}
+        {!cameraLive && <PhotoScene key={`bg-${stepIndex}`} photo={step.photo} showMarker={!showSuggest} />}
         <div className="nav-shade" />
       </div>
 
+      {/* Mientras se pregunta si terminó el paso, solo queda la cámara de fondo y el aviso. */}
       {cameraLive &&
+        !showSuggest &&
         (relBearing !== null && distToAim !== null ? (
           <GeoArOverlay relBearing={relBearing} distance={distToAim} label={step.landmark} isArrive={!target} />
         ) : (
-          <ArOverlay key={stepIndex} step={step} />
+          <ArOverlay key={`${stepIndex}-${shownDirection}`} step={{ ...step, direction: shownDirection }} />
         ))}
 
-
+      {!showSuggest && (
+        <>
       <header className="nav-top">
         <button type="button" className="icon-btn" aria-label="Salir de la navegación" onClick={() => setConfirmExit(true)}>
           <Close width={20} height={20} />
@@ -179,12 +220,12 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
         </div>
       </header>
 
-      <section className={`instruction dir-${step.direction}`} key={`card-${stepIndex}`} aria-live="polite">
+      <section className={`instruction dir-${shownDirection}`} key={`card-${stepIndex}-${shownDirection}`} aria-live="polite">
         <span className="instruction-icon">
-          <DirectionIcon direction={step.direction} width={32} height={32} strokeWidth={2.4} />
+          <DirectionIcon direction={shownDirection} width={32} height={32} strokeWidth={2.4} />
         </span>
         <div className="instruction-text">
-          <h1>{step.title}</h1>
+          <h1>{shownTitle}</h1>
           <p className="instruction-meta">{meta}</p>
           <p className="instruction-detail">{step.detail}</p>
         </div>
@@ -202,27 +243,6 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
       </section>
 
       <footer className="nav-bottom">
-        {showSuggest && (
-          <div className="suggest" role="status">
-            <div className="suggest-head">
-              <span className="suggest-icon">
-                <Check width={18} height={18} strokeWidth={3} />
-              </span>
-              <div>
-                <strong>{target === LAST_POINT ? `Parece que llegaste a ${ROUTE.destination.short}` : 'Parece que terminaste este paso'}</strong>
-                <span>¿Pasamos a la siguiente indicación?</span>
-              </div>
-            </div>
-            <div className="suggest-actions">
-              <button type="button" className="btn-ghost" onClick={notYet}>
-                Aún no
-              </button>
-              <button type="button" className="btn-primary" onClick={next}>
-                Pasar al siguiente
-              </button>
-            </div>
-          </div>
-        )}
         {showMap && (
           <div className="mini-map">
             <CampusMap activeStep={stepIndex} />
@@ -277,6 +297,29 @@ export function NavigateScreen({ onArrive, onExit }: Props) {
           <ChevronRight width={20} height={20} />
         </button>
       </footer>
+        </>
+      )}
+
+      {showSuggest && (
+        <div className="suggest-overlay" role="dialog" aria-modal="true" aria-labelledby="suggest-title">
+          <div className="suggest-card">
+            <span className="suggest-icon">
+              <Check width={34} height={34} strokeWidth={3} />
+            </span>
+            <h2 id="suggest-title">
+              {target === LAST_POINT ? `Parece que llegaste a ${ROUTE.destination.short}` : 'Parece que terminaste este paso'}
+            </h2>
+            <p>¿Pasamos a la siguiente indicación?</p>
+            <button type="button" className="btn-primary" onClick={next}>
+              Pasar al siguiente
+              <ChevronRight width={20} height={20} />
+            </button>
+            <button type="button" className="btn-ghost" onClick={notYet}>
+              Aún no
+            </button>
+          </div>
+        </div>
+      )}
 
       {viewer && (
         <div className="viewer" role="dialog" aria-modal="true" aria-label="Foto de referencia">

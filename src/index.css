@@ -733,69 +733,65 @@ button:focus-visible {
   }
 }
 
-.suggest {
-  margin-bottom: 10px;
-  padding: 12px;
-  border-radius: 20px;
-  background: var(--lilac-soft);
-  border: 2px solid var(--route-soft);
-  animation: suggest-in 0.35s cubic-bezier(0.3, 1.4, 0.5, 1) both;
-}
-
-.suggest-head {
+/* Aviso "Parece que terminaste este paso": tapa todo menos la cámara. */
+.suggest-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
   display: flex;
   align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bottom) + 20px);
+  background: rgba(31, 21, 53, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: fade 0.25s both;
+}
+
+.suggest-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 28px 20px 18px;
+  border-radius: 28px;
+  text-align: center;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  animation: suggest-in 0.4s cubic-bezier(0.3, 1.4, 0.5, 1) both;
 }
 
-.suggest-head strong,
-.suggest-head span {
-  display: block;
-}
-
-.suggest-head strong {
+.suggest-card h2 {
   font-family: var(--font-display);
+  font-size: 23px;
   font-weight: 800;
+  line-height: 1.15;
   color: var(--primary);
 }
 
-.suggest-head span {
-  font-size: 13px;
+.suggest-card p {
   color: var(--muted);
+  margin-bottom: 8px;
 }
 
 .suggest-icon {
-  width: 36px;
-  height: 36px;
-  flex: none;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 4px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   color: #fff;
-  background: var(--route);
-}
-
-.suggest-actions {
-  display: grid;
-  grid-template-columns: 1fr 1.6fr;
-  gap: 8px;
-}
-
-.suggest-actions .btn-primary,
-.suggest-actions .btn-ghost {
-  min-height: 46px;
-  font-size: 15px;
-}
-
-.suggest-actions .btn-ghost {
-  background: var(--surface);
+  background: var(--primary);
+  box-shadow: 0 0 0 10px var(--lilac-soft);
 }
 
 @keyframes suggest-in {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.96);
+    transform: translateY(16px) scale(0.94);
   }
 }
 
